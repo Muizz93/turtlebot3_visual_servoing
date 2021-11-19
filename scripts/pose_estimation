@@ -22,13 +22,13 @@ class pose_estimation:
         self.image_sub = rospy.Subscriber("/camera/image_raw", Image, self.callback)
         self.bridge = CvBridge()
         self.pose = Float64MultiArray()
-        path = os.path.expanduser("~")+"/catkin_ws/src/viser/camera_info/camera_sim.yaml"
+        path = os.path.expanduser("~")+"/catkin_ws/src/turtlebot3_visual_servoing/camera_info/camera_sim.yaml"
         
         with open(path, "r") as file_handle:
             calib_data = yaml.load(file_handle)
         self.K = np.array(calib_data["camera_matrix"]["data"]).reshape(3,3)
         self.D = np.array(calib_data["distortion_coefficients"]["data"])
-        goal_img = cv2.imread(os.path.expanduser("~")+'/catkin_ws/src/viser/goal/desired.png')
+        goal_img = cv2.imread(os.path.expanduser("~")+'/catkin_ws/src/turtlebot3_visual_servoing/goal/desired.png')
         self.goal_hmat=[]
         goal_img, self.goal_hmat = self.compute_pose_estimation(goal_img, self.K, self.D)
         
