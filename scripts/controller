@@ -1,0 +1,20 @@
+#!/usr/bin/env python
+
+import rospy
+from std_msgs.msg import Float64MultiArray
+
+class Controller:
+    def __init__(self, p_gain, i_gain, d_gain):
+        self.kp, self.ki, self.kd = p_gain, i_gain, d_gain
+        self.pose_sub = rospy.Subscriber("robot_pose_raw", Float64MultiArray, self.callback)
+
+    def callback(self, pose):
+
+
+    def update_controller(error):
+        error[2] = error
+        Pterm = (self.kp + (self.ki * self.dt) + self.kd) * error[2] 
+        Iterm =
+        Dterm
+        return u += Pterm + Iterm + Dterm
+    
