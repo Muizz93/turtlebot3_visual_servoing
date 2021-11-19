@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <package format="2">
-  <name>visual-servoing</name>
+  <name>turtlebot3_visual_servoing</name>
   <version>0.0.0</version>
   <description>The viser package</description>
 
