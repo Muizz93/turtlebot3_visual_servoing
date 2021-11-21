@@ -2,15 +2,13 @@
 
 import rospy
 import cv2
-from std_msgs.msg import String
+from std_msgs.msg import String, Float64MultiArray, MultiArrayDimension
 from sensor_msgs.msg import Image
 from geometry_msgs.msg import Pose2D
 from cv_bridge import CvBridge, CvBridgeError
 import cv2.aruco as aruco
 import numpy as np
 from numpy.linalg import inv
-from std_msgs.msg import Float64MultiArray
-from std_msgs.msg import MultiArrayDimension
 import yaml
 import os
 
@@ -18,10 +16,10 @@ import os
 class pose_estimation:
 
     def __init__(self):
-        self.image_pub = rospy.Publisher("/robot_detection", Image, queue_size=1)
-        self.robot_pose_pub = rospy.Publisher("/robot_pose_raw", Float64MultiArray, queue_size=1)
-        self.parking_pose_pub = rospy.Publisher("/parking_pose", Float64MultiArray, queue_size=1)
-        self.image_sub = rospy.Subscriber("/camera/image_raw", Image, self.callback)
+        self.image_pub = rospy.Publisher('/robot_detection', Image, queue_size=1)
+        self.robot_pose_pub = rospy.Publisher('/robot_pose_raw', Float64MultiArray, queue_size=1)
+        self.parking_pose_pub = rospy.Publisher('/parking_pose', Float64MultiArray, queue_size=1)
+        self.image_sub = rospy.Subscriber('/camera/image_raw', Image, self.callback)
         self.bridge = CvBridge()
         self.robot_pose = Float64MultiArray()
         self.parking_pose = Float64MultiArray()

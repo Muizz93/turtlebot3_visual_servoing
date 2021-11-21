@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import rospy
+import message_filters
 from std_msgs.msg import Float64MultiArray
 from geometry_msgs.msg import Twist
 import numpy as np
@@ -8,26 +9,28 @@ from numpy.linalg import inv
 import time
 
 class Controller:
-    def __init__(self, p_gain = 0.01, i_gain = 0, d_gain = 0, current_time = None):
+    def __init__(self, p_gain = 0.01, i_gain = 0, d_gain = 0, current_time = None, limitter = 0.3):
         self.kp, self.ki, self.kd = p_gain, i_gain, d_gain
+        self.max_vel = limitter
         self.sample_time = 0.00
         self.current_time = current_time if current_time is not None else time.time()
         self.last_time = self.current_time
 
-        self.robot_pose_sub = rospy.Subscriber("robot_pose_raw", Float64MultiArray, self.update_controller, queue_size = 1)
-        self.parking_pose_sub = rospy.Subscriber("parking_pose", Float64MultiArray, self.parking_matrix)
+        self.robot_pose_sub = message_filters.Subscriber('robot_pose_raw', Float64MultiArray)
+        self.parking_pose_sub = message_filters.Subscriber('parking_pose', Float64MultiArray)
         self.cmd_vel_pub = rospy.Publisher('/control/cmd_vel', Twist, queue_size = 1)
+
+        self.ts = message_filters.ApproximateTimeSynchronizer([self.robot_pose_sub, self.parking_pose_sub], queue_size=10, slop=0.1, allow_headerless=True)
+        self.ts.registerCallback(self.robot_matrix)
 
         rospy.on_shutdown(self.fnShutDown)
 
         self.clear()
     
-    def parking_matrix(self, parking_pose):
-        try:
-            self.parking_hmat = np.array(parking_pose.data).reshape(parking_pose.layout.dim[1].size, parking_pose.layout.dim[2].size)
-
-        except AttributeError:
-            pass
+    def robot_matrix(self, robot_pose, parking_pose):
+        self.robot_hmat = np.array(robot_pose.data).reshape(robot_pose.layout.dim[1].size, robot_pose.layout.dim[2].size)
+        self.parking_hmat = np.array(parking_pose.data).reshape(parking_pose.layout.dim[1].size, parking_pose.layout.dim[2].size)
+        print('hello')
 
     def clear(self):
 
@@ -46,36 +49,41 @@ class Controller:
 
         self.u = 0.0
 
-    def update_controller(self, robot_pose, current_time = None):
-        try:
-            self.robot_hmat = np.array(robot_pose.data).reshape(robot_pose.layout.dim[1].size, robot_pose.layout.dim[2].size)
+        self.robot_hmat = np.random.rand(4,4)
+        self.parking_hmat = self.robot_hmat
 
-            delta_hmat = np.matmul(inv(self.robot_hmat), self.parking_hmat)
-            self.err[2] = delta_hmat[0][3]
+    def update_controller(self, event=None):
 
-            self.current_time = current_time if current_time is not None else time.time()
-            delta_time = self.current_time - self.last_time
+        self.current_time = time.time()
+        delta_hmat = np.matmul(inv(self.robot_hmat), self.parking_hmat)
 
-            self.PTerm = self.kp * (self.err[2] - self.err[1])
-            self.ITerm = self.ki * self.err[2] * delta_time
+        self.err[2] = delta_hmat[0][3]
 
-            if self.ITerm < -self.windup_guard:
-                self.ITerm = -self.windup_guard
-            elif self.ITerm > self.windup_guard:
-                self.ITerm = self.windup_guard
+        
+        delta_time = self.current_time - self.last_time
 
-            self.DTerm = self.kd * (self.err[2] - 2*self.err[1] + self.err[0])
+        self.PTerm = self.kp * (self.err[2] - self.err[1])
+        self.ITerm = self.ki * self.err[2] * delta_time
 
-            self.last_time = self.current_time
-            self.err[1] = self.err[2]
-            self.err[0] = self.err[1]
+        if self.ITerm < -self.windup_guard:
+            self.ITerm = -self.windup_guard
+        elif self.ITerm > self.windup_guard:
+            self.ITerm = self.windup_guard
 
-            self.u += self.PTerm + self.ITerm + self.DTerm
-            print(self.u)
+        self.DTerm = self.kd * (self.err[2] - 2*self.err[1] + self.err[0])
 
-        except AttributeError:
-            print('a')
-            pass
+        self.last_time = self.current_time
+        self.err[1] = self.err[2]
+        self.err[0] = self.err[1]
+
+        self.u += self.PTerm + self.ITerm + self.DTerm
+
+        self.u = np.clip(self.u, a_min = -self.max_vel, a_max = self.max_vel)
+        print(self.u)
+    # twist = Twist()
+    # twist.linear.z = self.u
+
+    # self.cmd_vel_pub.publish(twist)
 
     def fnShutDown(self):
         rospy.loginfo("Shutting down. cmd_vel will be 0")
@@ -93,7 +101,7 @@ def main():
     rospy.init_node('controller', anonymous=True)
     rospy.loginfo("Initializing controller")
     goto_point = Controller(0.1)
-    
+    rospy.Timer(rospy.Duration(1.0/10.0), goto_point.update_controller)
     rospy.spin()
 
 if __name__ == '__main__':
