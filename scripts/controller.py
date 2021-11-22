@@ -20,7 +20,7 @@ class Controller:
         self.parking_pose_sub = message_filters.Subscriber('parking_pose', Float64MultiArray)
         self.cmd_vel_pub = rospy.Publisher('/cmd_vel', Twist, queue_size = 1)
 
-        self.ts = message_filters.ApproximateTimeSynchronizer([self.robot_pose_sub, self.parking_pose_sub], queue_size=1, slop=0.1, allow_headerless=True)
+        self.ts = message_filters.ApproximateTimeSynchronizer([self.robot_pose_sub, self.parking_pose_sub], queue_size=1, slop=1, allow_headerless=True)
         self.ts.registerCallback(self.robot_matrix)
 
         rospy.on_shutdown(self.fnShutDown)
@@ -60,9 +60,14 @@ class Controller:
             self.delta_hmat = np.matmul(inv(self.robot_hmat), self.parking_hmat)
         except np.linalg.LinAlgError:
             pass
-        _,_,self.theta = tf.transformations.euler_from_matrix(self.delta_hmat, 'rxyz')
-        self.err[2] = self.theta
+        # _,_,self.theta = tf.transformations.euler_from_matrix(self.delta_hmat, 'rxyz')
         
+        self.err[2] = self.theta
+        dx = self.delta_hmat[0][3]
+        dy = self.delta_hmat[1][3]
+        self.theta = np.arctan2(dy,dx)
+        print(dx,dy,self.theta)
+
         delta_time = self.current_time - self.last_time
 
         self.PTerm = self.kp * (self.err[2] - self.err[1])
@@ -81,9 +86,14 @@ class Controller:
 
         self.u += self.PTerm + self.ITerm + self.DTerm
 
+        u1 = 0.085* np.hypot(dx,dy)
+        if self.theta > 0.3 or self.theta < -0.3:
+            u1 = 0
+
+
         self.u = np.clip(self.u, a_min = -self.max_vel, a_max = self.max_vel)
         twist = Twist()
-        twist.linear.x = 0
+        twist.linear.x = u1
         twist.linear.y = 0
         twist.linear.z = 0
         twist.angular.x = 0
@@ -107,8 +117,8 @@ class Controller:
 def main():
     rospy.init_node('controller', anonymous=True)
     rospy.loginfo("Initializing controller")
-    goto_point = Controller(0.5, 0.00005, limitter = 2.84)
-    rospy.Timer(rospy.Duration(1.0/10.0), goto_point.update_controller)
+    goto_point = Controller(0.5, 0.01, limitter = 2.84)
+    rospy.Timer(rospy.Duration(1.0/20.0), goto_point.update_controller)
     rospy.spin()
 
 if __name__ == '__main__':

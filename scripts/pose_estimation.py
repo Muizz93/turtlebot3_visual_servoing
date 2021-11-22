@@ -23,13 +23,13 @@ class pose_estimation:
         self.robot_pose = Float64MultiArray()
         self.parking_pose = Float64MultiArray()
 
-        path = os.path.expanduser("~")+"/catkin_ws/src/turtlebot3_visual_servoing/camera_info/camera_sim.yaml"
+        path = os.path.expanduser("~")+"/catkin_ws/src/turtlebot3_visual_servoing/camera_info/camera_real.yaml"
         with open(path, "r") as file_handle:
             calib_data = yaml.load(file_handle)
         self.K = np.array(calib_data["camera_matrix"]["data"]).reshape(3,3)
         self.D = np.array(calib_data["distortion_coefficients"]["data"])
         self.parking_hmat = []
-        goal_img = cv2.imread(os.path.expanduser("~")+'/catkin_ws/src/turtlebot3_visual_servoing/goal/desired.png')
+        goal_img = cv2.imread(os.path.expanduser("~")+'/catkin_ws/src/turtlebot3_visual_servoing/parking/parking2.png')
         parking_img, self.parking_hmat = self.compute_pose_estimation(goal_img, self.K, self.D)
         
     def callback(self, data):
@@ -91,22 +91,23 @@ class pose_estimation:
         if len(corners) > 0:
             for i in range(0, len(ids)):
                 # Estimate pose of each marker and return the values rvec and tvec---(different from those of camera coefficients)
-                ret = aruco.estimatePoseSingleMarkers(corners[i], 0.19, matrix_coefficients, distortion_coefficients)
-                rvec, tvec = ret[0][0,0,:], ret[1][0,0,:]
+                ret = aruco.estimatePoseSingleMarkers(corners[i], 0.15, matrix_coefficients, distortion_coefficients)
+                self.rvec, self.tvec = ret[0][0,0,:], ret[1][0,0,:]
                 # Draw a square around the markers
                 aruco.drawDetectedMarkers(frame, corners) 
 
                 # Draw Axis
-                frame = aruco.drawAxis(frame, matrix_coefficients, distortion_coefficients, rvec, tvec, 0.1)
+                frame = aruco.drawAxis(frame, matrix_coefficients, distortion_coefficients, self.rvec, self.tvec, 0.1)
 
-        hmat = self.homogeneous_from_vectors(tvec, rvec)
+        hmat = self.homogeneous_from_vectors(self.tvec, self.rvec)
 
         return frame, hmat
 
     def homogeneous_from_vectors(self, translation_vectors, rotation_vectors):
+        tmat = np.array(translation_vectors)
         rmat, _ = cv2.Rodrigues(rotation_vectors)
-        hmat = np.r_['0,2', np.c_[rmat, translation_vectors.T], [0, 0, 0, 1]]
-        return hmat
+        hmat = np.r_['0,2', np.c_[rmat, tmat.T], [0, 0, 0, 1]]
+        return np.array(hmat)
 
 def main():
   rospy.init_node('pose_estimation', anonymous=True)
