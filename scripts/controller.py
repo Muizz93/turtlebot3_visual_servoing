@@ -20,7 +20,7 @@ class Controller:
         self.parking_pose_sub = message_filters.Subscriber('parking_pose', Float64MultiArray)
         self.cmd_vel_pub = rospy.Publisher('/control/cmd_vel', Twist, queue_size = 1)
 
-        self.ts = message_filters.ApproximateTimeSynchronizer([self.robot_pose_sub, self.parking_pose_sub], queue_size=10, slop=0.1, allow_headerless=True)
+        self.ts = message_filters.ApproximateTimeSynchronizer([self.robot_pose_sub, self.parking_pose_sub], queue_size=1, slop=0.1, allow_headerless=True)
         self.ts.registerCallback(self.robot_matrix)
 
         rospy.on_shutdown(self.fnShutDown)
@@ -30,7 +30,6 @@ class Controller:
     def robot_matrix(self, robot_pose, parking_pose):
         self.robot_hmat = np.array(robot_pose.data).reshape(robot_pose.layout.dim[1].size, robot_pose.layout.dim[2].size)
         self.parking_hmat = np.array(parking_pose.data).reshape(parking_pose.layout.dim[1].size, parking_pose.layout.dim[2].size)
-        print('hello')
 
     def clear(self):
 
@@ -64,13 +63,12 @@ class Controller:
 
         self.PTerm = self.kp * (self.err[2] - self.err[1])
         self.ITerm = self.ki * self.err[2] * delta_time
+        self.DTerm = self.kd * (self.err[2] - 2*self.err[1] + self.err[0])
 
         if self.ITerm < -self.windup_guard:
             self.ITerm = -self.windup_guard
         elif self.ITerm > self.windup_guard:
             self.ITerm = self.windup_guard
-
-        self.DTerm = self.kd * (self.err[2] - 2*self.err[1] + self.err[0])
 
         self.last_time = self.current_time
         self.err[1] = self.err[2]

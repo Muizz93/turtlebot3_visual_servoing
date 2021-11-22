@@ -12,7 +12,6 @@ from numpy.linalg import inv
 import yaml
 import os
 
-
 class pose_estimation:
 
     def __init__(self):
@@ -29,9 +28,8 @@ class pose_estimation:
             calib_data = yaml.load(file_handle)
         self.K = np.array(calib_data["camera_matrix"]["data"]).reshape(3,3)
         self.D = np.array(calib_data["distortion_coefficients"]["data"])
-
+        self.parking_hmat = []
         goal_img = cv2.imread(os.path.expanduser("~")+'/catkin_ws/src/turtlebot3_visual_servoing/goal/desired.png')
-        self.parking_hmat=[]
         parking_img, self.parking_hmat = self.compute_pose_estimation(goal_img, self.K, self.D)
         
     def callback(self, data):
@@ -80,7 +78,6 @@ class pose_estimation:
 
         except CvBridgeError as e:
             print(e)
-
 
     def compute_pose_estimation(self, frame, matrix_coefficients, distortion_coefficients):
 
