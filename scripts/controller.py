@@ -3,22 +3,22 @@
 import rospy
 import message_filters
 from std_msgs.msg import Float64MultiArray
-from geometry_msgs.msg import Twist
+from geometry_msgs.msg import Twist, Pose2D
 import numpy as np
 from numpy.linalg import inv
 import time
+import tf
 
 class Controller:
     def __init__(self, p_gain = 0.01, i_gain = 0, d_gain = 0, current_time = None, limitter = 0.3):
         self.kp, self.ki, self.kd = p_gain, i_gain, d_gain
         self.max_vel = limitter
-        self.sample_time = 0.00
         self.current_time = current_time if current_time is not None else time.time()
         self.last_time = self.current_time
 
         self.robot_pose_sub = message_filters.Subscriber('robot_pose_raw', Float64MultiArray)
         self.parking_pose_sub = message_filters.Subscriber('parking_pose', Float64MultiArray)
-        self.cmd_vel_pub = rospy.Publisher('/control/cmd_vel', Twist, queue_size = 1)
+        self.cmd_vel_pub = rospy.Publisher('/cmd_vel', Twist, queue_size = 1)
 
         self.ts = message_filters.ApproximateTimeSynchronizer([self.robot_pose_sub, self.parking_pose_sub], queue_size=1, slop=0.1, allow_headerless=True)
         self.ts.registerCallback(self.robot_matrix)
@@ -48,16 +48,20 @@ class Controller:
 
         self.u = 0.0
 
-        self.robot_hmat = np.random.rand(4,4)
+        self.robot_hmat = np.zeros((4,4), dtype=np.float64)
         self.parking_hmat = self.robot_hmat
+        self.delta_hmat = self.robot_hmat
+        self.theta = 0.0
 
     def update_controller(self, event=None):
-
+        
         self.current_time = time.time()
-        delta_hmat = np.matmul(inv(self.robot_hmat), self.parking_hmat)
-
-        self.err[2] = delta_hmat[0][3]
-
+        try:
+            self.delta_hmat = np.matmul(inv(self.robot_hmat), self.parking_hmat)
+        except np.linalg.LinAlgError:
+            pass
+        _,_,self.theta = tf.transformations.euler_from_matrix(self.delta_hmat, 'rxyz')
+        self.err[2] = self.theta
         
         delta_time = self.current_time - self.last_time
 
@@ -71,17 +75,22 @@ class Controller:
             self.ITerm = self.windup_guard
 
         self.last_time = self.current_time
-        self.err[1] = self.err[2]
         self.err[0] = self.err[1]
+        self.err[1] = self.err[2]
+        print(self.err[2])
 
         self.u += self.PTerm + self.ITerm + self.DTerm
 
         self.u = np.clip(self.u, a_min = -self.max_vel, a_max = self.max_vel)
-        print(self.u)
-    # twist = Twist()
-    # twist.linear.z = self.u
+        twist = Twist()
+        twist.linear.x = 0
+        twist.linear.y = 0
+        twist.linear.z = 0
+        twist.angular.x = 0
+        twist.angular.y = 0
+        twist.angular.z = self.u
 
-    # self.cmd_vel_pub.publish(twist)
+        self.cmd_vel_pub.publish(twist)
 
     def fnShutDown(self):
         rospy.loginfo("Shutting down. cmd_vel will be 0")
@@ -98,7 +107,7 @@ class Controller:
 def main():
     rospy.init_node('controller', anonymous=True)
     rospy.loginfo("Initializing controller")
-    goto_point = Controller(0.1)
+    goto_point = Controller(0.5, 0.00005, limitter = 2.84)
     rospy.Timer(rospy.Duration(1.0/10.0), goto_point.update_controller)
     rospy.spin()
 
