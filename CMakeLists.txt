@@ -174,6 +174,7 @@ include_directories(
    scripts/aruco_detect.py
    scripts/pose_estimation.py
    scripts/controller.py
+   scripts/obstacle_avoidance.py
    DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
  )
 
