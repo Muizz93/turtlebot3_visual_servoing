@@ -7,7 +7,7 @@
   <arg name="simulation_mode" default="$(env SIM_MODE)" doc="simulation_mode type [true, false]"/>
 
   <include if="$(arg simulation_mode)" file="$(find gazebo_ros)/launch/empty_world.launch">
-    <arg name="world_name" value="$(find turtlebot3_visual_servoing)/worlds/my_world.world"/>
+    <arg name="world_name" value="$(find turtlebot3_visual_servoing)/worlds/parking_with_obstacles.world"/>
     <arg name="paused" value="false"/>
     <arg name="use_sim_time" value="true"/>
     <arg name="gui" value="true"/>

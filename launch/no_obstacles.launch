@@ -4,8 +4,8 @@
   <arg name="y_pos" default="0.0"/>
   <arg name="z_pos" default="0.0"/>
 
-  <include if="$(arg simulation_mode)" file="$(find gazebo_ros)/launch/empty_world.launch">
-    <arg name="world_name" value="$(find turtlebot3_visual_servoing)/worlds/my_world.world"/>
+  <include file="$(find gazebo_ros)/launch/empty_world.launch">
+    <arg name="world_name" value="$(find turtlebot3_visual_servoing)/worlds/parking_without_obstacles.world"/>
     <arg name="paused" value="false"/>
     <arg name="use_sim_time" value="true"/>
     <arg name="gui" value="true"/>
@@ -13,8 +13,4 @@
     <arg name="debug" value="false"/>
   </include>
 
-  <node name="image_proc" pkg="image_proc" type="image_proc" ns="camera" output="screen">
-    <remap from="image_raw" to="image" />
-    <param name="queue_size" value="20" />
-  </node>
 </launch>
