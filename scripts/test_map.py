@@ -37,48 +37,8 @@ for c in contours:
 # y = np.arange(0, height/10, width/10)
 # X, Y = np.meshgrid(x, y)
 a = cv2.resize(binary,(width/20, height/20),interpolation=cv2.INTER_NEAREST)
-# a = cv2.resize(a,(width, height),interpolation=cv2.INTER_NEAREST)
-b = []
-d = []
-e = []
-point=[1,1]
-goal = [15,15]
+a = cv2.resize(a,(width, height),interpolation=cv2.INTER_NEAREST)
 
-point_float = [float(x) for x in point]
-goal_float = [float(x) for x in goal]
-# print(point_float)
-dx = point_float[0]-goal_float[0]
-dy = point_float[1]-goal_float[1]
-while not np.hypot(dx,dy)<2.0 or np.hypot(dx,dy)>-2.0:
-    # print('aaa')
-    for i in range(3):
-        # print(i)
-        for j in range(3):
-            if a[i-1+point[0]][j-1+point[1]] == True:
-                
-                c = np.hypot((i-1+point[0])-goal[0],(j-1+point[1])-goal[1])
-                # print(c)
-                b.append(c.tolist())
-                # print(b)
-                e = [(i-1+point[0]),(i-1+point[1])]
-                # print(e)
-                d.append(e)
-    print(b)
-    print(d)       
-                
-    # print(np.min(b))
-    for k in range(len(b)):
-        if np.min(b) == b[k]:
-            point=d[k]
-            point_float = [float(x) for x in point]
-            print(point)
-            dx = point_float[0]-goal_float[0]
-            dy = point_float[1]-goal_float[1]
-            break
-    b=[]
-    d=[]
-    
-    
 
 #cv2.imshow("result1", result1)
 cv2.imshow("result", binary)
