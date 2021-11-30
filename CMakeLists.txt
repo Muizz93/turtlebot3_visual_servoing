@@ -128,7 +128,7 @@ catkin_package(
 ## Your package locations should be listed before other locations
 include_directories(
 # include
-# ${catkin_INCLUDE_DIRS}
+ ${catkin_INCLUDE_DIRS}
 )
 
 ## Declare a C++ library
@@ -201,10 +201,11 @@ include_directories(
 
 ## Mark other files for installation (e.g. launch and bag files, etc.)
  install(DIRECTORY
-   camera_info
-   launch
-   parking
-   worlds
+   camera_info/
+   launch/
+   parking/
+   worlds/
+   scripts/
    # myfile1
    # myfile2
    DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}

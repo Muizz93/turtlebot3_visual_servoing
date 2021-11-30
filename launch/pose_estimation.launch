@@ -1,0 +1,9 @@
+<launch>
+  
+  <node pkg="image_proc" name="image_proc" type="image_proc" ns="camera" output="screen"/>
+ 
+
+  <node pkg="turtlebot3_visual_servoing" name="pose_estimation" type="pose_estimation.py" output="screen"/>
+
+
+</launch>

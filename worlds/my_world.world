@@ -229,12 +229,19 @@
             </lens>
           </camera>
           <plugin name='camera_controller' filename='libgazebo_ros_camera.so'>
+            <alwaysOn>true</alwaysOn>
+            <updateRate>25.0</updateRate>
             <robotNamespace>/</robotNamespace>
             <cameraName>camera</cameraName>
             <imageTopicName>image_raw</imageTopicName>
             <cameraInfoTopicName>camera_info</cameraInfoTopicName>
             <frameName>camera_link</frameName>
-            <hackBaseline>0</hackBaseline>
+            <hackBaseline>0.07</hackBaseline>
+            <distortionK1>-0.1420192619463601</distortionK1>
+            <distortionK2>0.02261291520537641</distortionK2>
+            <distortionK3>-0.0006433816187250705</distortionK3>
+            <distortionT1>-0.00006726991959411866</distortionT1>
+            <distortionT2>0.0</distortionT2>
           </plugin>
         </sensor>
         <gravity>0</gravity>

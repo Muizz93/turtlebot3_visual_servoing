@@ -4,6 +4,8 @@
   <arg name="y_pos" default="0.0"/>
   <arg name="z_pos" default="0.0"/>
 
+  <arg name="simulation_mode" default="$(env SIM_MODE)" doc="simulation_mode type [true, false]"/>
+
   <include if="$(arg simulation_mode)" file="$(find gazebo_ros)/launch/empty_world.launch">
     <arg name="world_name" value="$(find turtlebot3_visual_servoing)/worlds/my_world.world"/>
     <arg name="paused" value="false"/>
@@ -13,8 +15,4 @@
     <arg name="debug" value="false"/>
   </include>
 
-  <node name="image_proc" pkg="image_proc" type="image_proc" ns="camera" output="screen">
-    <remap from="image_raw" to="image" />
-    <param name="queue_size" value="20" />
-  </node>
 </launch>
