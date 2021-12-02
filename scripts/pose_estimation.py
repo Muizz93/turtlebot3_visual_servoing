@@ -34,6 +34,7 @@ class pose_estimation:
         goal_img = cv2.imread(os.path.expanduser("~")+'/catkin_ws/src/turtlebot3_visual_servoing/parking/desired.png')
         parking_img, self.parking_hmat = self.compute_pose_estimation(goal_img, self.K, self.D)
         # print('goal \n',self.parking_hmat)
+        self.filter = StreamingMovingAverage(5)
     def callback(self, data):
         try:
             cv_image = self.bridge.imgmsg_to_cv2(data, "bgr8")
@@ -45,7 +46,7 @@ class pose_estimation:
             # except np.linalg.LinAlgError:
             #     self.robot_hmat = robot_current_hmat
             #     pass
-            self.robot_hmat = (self.robot_hmat + robot_current_hmat)/2
+            self.robot_hmat = self.filter.update(robot_current_hmat)
             # print(self.robot_hmat)
             # print(np.matmul(inv(self.robot_hmat), self.parking_hmat))
             self.robot_pose.data = self.robot_hmat.flatten()
@@ -118,6 +119,19 @@ class pose_estimation:
         rmat, _ = cv2.Rodrigues(rotation_vectors)
         hmat = np.r_['0,2', np.c_[rmat, tmat.T], [0, 0, 0, 1]]
         return np.array(hmat)
+
+class StreamingMovingAverage:
+    def __init__(self, window_size):
+        self.window_size = window_size
+        self.values = []
+        self.sum = [[0]*4]*4
+    
+    def update(self, value):
+        self.values.append(value)
+        self.sum += value
+        if len(self.values) > self.window_size:
+            self.sum -=self.values.pop(0)
+        return self.sum/self.window_size
 
 def main():
   rospy.init_node('pose_estimation', anonymous=True)

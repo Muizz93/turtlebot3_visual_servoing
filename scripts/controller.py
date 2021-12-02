@@ -8,14 +8,9 @@ import numpy as np
 from numpy.linalg import inv
 import time
 import tf
-import math
 
 class Controller:
-    def __init__(self): #, p_gain = 0.01, i_gain = 0, d_gain = 0, current_time = None, limitter = 0.3):
-        # self.kp, self.ki, self.kd = p_gain, i_gain, d_gain
-        # self.max_vel = limitter
-        # self.current_time = current_time if current_time is not None else time.time()
-        # self.last_time = self.current_time
+    def __init__(self): 
 
         self.robot_pose_sub = message_filters.Subscriber('robot_pose_raw', Float64MultiArray)
         self.parking_pose_sub = message_filters.Subscriber('parking_pose', Float64MultiArray)
@@ -23,11 +18,11 @@ class Controller:
 
         self.ts = message_filters.ApproximateTimeSynchronizer([self.robot_pose_sub, self.parking_pose_sub], queue_size=1, slop=1, allow_headerless=True)
         self.ts.registerCallback(self.robot_matrix)
-        self.goto_point = PID(kp = np.array([[0.085, 0.0, 0.0], [0.0, 0.5, 0.0]]), 
-                              ki = np.array([[0.0, 0.0, 0.0], [0.0, 0.001, 0.0]]), 
-                              kd = np.array([[0.0, 0.0, 0.0], [0.0, 0.0, 0.0]]),
+        self.goto_point = PID(kp = np.array([[0.08, 0.0, 0.0], [0.0, 0.4, 0.0]]), 
+                              ki = np.array([[0.001, 0.0, 0.0], [0.0, 0.005, 0.0]]), 
+                              kd = np.array([[0.0001, 0.0, 0.0], [0.0, 0.0001, 0.0]]),
                               limitter = np.array([[0.2],[3.3]]))
-        self.goto_parking = PID(kp = [[0.3, 0.8, -0.15], [0.0, 0.0, 0.0]])
+        self.goto_parking = PID(kp = [[0.3, 0.0, 0.0], [0.0, 0.8, -0.15]])
         # self.clear()
         self.delta_hmat = np.zeros((4,4), dtype = np.float64)
         self.robot_hmat = np.zeros((4,4), dtype = np.float64)
@@ -35,30 +30,9 @@ class Controller:
         self.theta = 0.0
         rospy.on_shutdown(self.fnShutDown)
 
-    
     def robot_matrix(self, robot_pose, parking_pose):
         self.robot_hmat = np.array(robot_pose.data).reshape(robot_pose.layout.dim[1].size, robot_pose.layout.dim[2].size)
         self.parking_hmat = np.array(parking_pose.data).reshape(parking_pose.layout.dim[1].size, parking_pose.layout.dim[2].size)
-
-    # def clear(self):
-
-    #     """Clears PID computations and coefficients"""
-            
-    #     self.PTerm = 0.0
-    #     self.ITerm = 0.0
-    #     self.DTerm = 0.0
-    #     self.err = [0.0, 0.0, 0.0]
-
-    #     # Windup Guard
-    #     self.int_error = 0.0
-    #     self.windup_guard = 3.0
-
-    #     self.u = 0.0
-
-    #     self.robot_hmat = np.zeros((4,4), dtype=np.float64)
-    #     self.parking_hmat = self.robot_hmat
-    #     self.delta_hmat = self.robot_hmat
-    #     self.theta = 0.0
 
     def update_controller(self, event=None):
         try:
@@ -72,48 +46,24 @@ class Controller:
         dy = self.delta_hmat[1][3]
 
         self.theta = np.arctan2(dy,dx)
-        # self.ds = np.hypot(dx,dy)
-        self.ds = math.hypot(dx,dy)
+        self.ds = np.hypot(dx,dy)
         print(self.ds,self.theta)
 
-        # self.current_time = time.time()
-        # delta_time = self.current_time - self.last_time
-
-        # self.PTerm = self.kp * (self.err[2] - self.err[1])
-        # self.ITerm = self.ki * self.err[2] * delta_time
-        # self.DTerm = self.kd * (self.err[2] - 2*self.err[1] + self.err[0])
-
-        # if self.ITerm < -self.windup_guard:
-        #     self.ITerm = -self.windup_guard
-        # elif self.ITerm > self.windup_guard:
-        #     self.ITerm = self.windup_guard
-
-        # self.last_time = self.current_time
-        # self.err[0] = self.err[1]
-        # self.err[1] = self.err[2]
-        # print(self.err[2])
-
-        # self.u += self.PTerm + self.ITerm + self.DTerm
-
-        # u1 = 0.085* np.hypot(dx,dy)
-        # if self.theta > 0.3 or self.theta < -0.3:
-        #     u1 = 0
-        # self.u = np.clip(self.u, a_min = -self.max_vel, a_max = self.max_vel)
-
+        u = np.zeros(2, dtype=np.float64)
         self.goto_point.update(errors = np.array([[self.ds], [self.theta], [0.0]]))
         if ((self.theta > 0.1) or (self.theta < -0.1)):
-            self.goto_point.output[0] = 0
-            print('a')
-
+            u[0] = 0.0
+        else:
+            u[0] = self.goto_point.output[0]
+        u[1] = self.goto_point.output[1]
         # print('b')
         twist = Twist()
-        twist.linear.x = self.goto_point.output[0]
+        twist.linear.x = u[0]
         twist.linear.y = 0
         twist.linear.z = 0
         twist.angular.x = 0
         twist.angular.y = 0
-        twist.angular.z = self.goto_point.output[1]
-        print(twist.linear.x,twist.angular.z)
+        twist.angular.z = u[1]
         self.cmd_vel_pub.publish(twist)
 
     def fnShutDown(self):
