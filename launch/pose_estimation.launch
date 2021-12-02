@@ -1,9 +1,14 @@
+<?xml version="1.0"?>
 <launch>
   
   <node pkg="image_proc" name="image_proc" type="image_proc" ns="camera" output="screen"/>
  
 
   <node pkg="turtlebot3_visual_servoing" name="pose_estimation" type="pose_estimation.py" output="screen"/>
-
+    <rosparam if="$(env simulation_mode)" command="load" file="$(find turtlebot3_visual_servoing)/camera_info/camera_sim.yaml"/>
+    <rosparam unless="$(env simulation_mode)" command="load" file="$(find turtlebot3_visual_servoing)/camera_info/camera_real.yaml"/>
+    <param if="$(env simulation_mode)" name="parking_image" value="$(find turtlebot3_visual_servoing)/parking/desired.png"/>
+    <param unless="$(env simulation_mode)" name="parking_image" value="$(find turtlebot3_visual_servoing)/parking/parkingA.png"/>
+    <param name="camera_parameters_file" type="string" value="$(find turtlebot3_visual_servoing)/camera_parameters_file/camera.ini" />
 
 </launch>

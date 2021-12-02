@@ -202,6 +202,7 @@ include_directories(
 ## Mark other files for installation (e.g. launch and bag files, etc.)
  install(DIRECTORY
    camera_info/
+   controller_gains/
    launch/
    parking/
    worlds/

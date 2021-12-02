@@ -26,12 +26,15 @@ class pose_estimation:
         path = os.path.expanduser("~")+"/catkin_ws/src/turtlebot3_visual_servoing/camera_info/camera_sim.yaml"
         with open(path, "r") as file_handle:
             calib_data = yaml.load(file_handle)
-        self.K = np.array(calib_data["camera_matrix"]["data"]).reshape(3,3)
-        self.D = np.array(calib_data["distortion_coefficients"]["data"])
+        #self.K = np.array(calib_data["camera_matrix"]["data"]).reshape(3,3)
+        #self.D = np.array(calib_data["distortion_coefficients"]["data"])
+        self.K = np.array(rospy.get_param('camera_matrix/data')).reshape(3,3)
+        self.D = np.array(rospy.get_param('distortion_coefficients/data'))
 
         self.parking_hmat = np.zeros((4,4), dtype=np.float64)
         self.robot_hmat = np.zeros((4,4), dtype=np.float64)
-        goal_img = cv2.imread(os.path.expanduser("~")+'/catkin_ws/src/turtlebot3_visual_servoing/parking/desired.png')
+        #goal_img = cv2.imread(os.path.expanduser("~")+'/catkin_ws/src/turtlebot3_visual_servoing/parking/desired.png')
+        goal_img = cv2.imread(rospy.get_param('parking_image'))
         parking_img, self.parking_hmat = self.compute_pose_estimation(goal_img, self.K, self.D)
         # print('goal \n',self.parking_hmat)
         self.filter = StreamingMovingAverage(5)
@@ -47,6 +50,7 @@ class pose_estimation:
             #     self.robot_hmat = robot_current_hmat
             #     pass
             self.robot_hmat = self.filter.update(robot_current_hmat)
+            # self.robot_hmat = (self.robot_hmat + robot_current_hmat)/2
             # print(self.robot_hmat)
             # print(np.matmul(inv(self.robot_hmat), self.parking_hmat))
             self.robot_pose.data = self.robot_hmat.flatten()
