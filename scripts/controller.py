@@ -13,7 +13,7 @@ from math import atan2, cos, sin, hypot
 class Controller:
     def __init__(self): 
 
-        self.robot_pose_sub = message_filters.Subscriber('robot_pose_raw', Float64MultiArray)
+        self.robot_pose_sub = message_filters.Subscriber('robot_pose', Float64MultiArray)
         self.parking_pose_sub = message_filters.Subscriber('parking_pose', Float64MultiArray)
         self.cmd_vel_pub = rospy.Publisher('/cmd_vel', Twist, queue_size = 1)
 

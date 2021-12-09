@@ -16,7 +16,7 @@ class pose_estimation:
 
     def __init__(self):
         self.image_pub = rospy.Publisher('/robot_detection', Image, queue_size=1)
-        self.robot_pose_pub = rospy.Publisher('/robot_pose_raw', Float64MultiArray, queue_size=1)
+        self.robot_pose_pub = rospy.Publisher('/robot_pose', Float64MultiArray, queue_size=1)
         self.parking_pose_pub = rospy.Publisher('/parking_pose', Float64MultiArray, queue_size=1)
         self.image_sub = rospy.Subscriber('/camera/image_rect_color', Image, self.callback)
         self.bridge = CvBridge()
