@@ -102,7 +102,7 @@ def astar(maze, start, end):
 
             # Make sure walkable terrain
             if np.all(maze[node_position[0]][node_position[1]]) != 1:
-		print('stuck')
+                print('stuck')
                 continue
 
             # Create new node
